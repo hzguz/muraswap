@@ -1,4 +1,3 @@
-import { PriceTicker } from "./components/PriceTicker";
 import { CurrencyConverter } from "./components/CurrencyConverter";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { LanguageProvider } from "./context/LanguageContext";
@@ -15,7 +14,6 @@ function App() {
 
           {/* Content Container - Clean Full Height 50/50 Layout */}
           <main className="relative z-10 h-full w-full flex flex-col pt-8 md:pt-0">
-            <PriceTicker />
             <div className="flex-1 flex flex-col md:flex-row h-full w-full">
               <CurrencyConverter />
             </div>

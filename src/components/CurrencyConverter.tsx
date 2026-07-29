@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowUpDown } from "lucide-react";
 import { CurrencyCard } from "./CurrencyCard";
 import { CurrencySelector } from "./CurrencySelector";
+import { RateStatus } from "./RateStatus";
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import { useCurrency } from "../context/CurrencyContext";
@@ -125,6 +126,7 @@ export function CurrencyConverter() {
                         whileTap={{ scale: 0.9 }}
                         whileHover={{ scale: 1.1, boxShadow: "0 0 30px rgba(255,255,255,0.15)" }}
                         onClick={swapCurrencies}
+                        aria-label="Swap currencies"
                         className="w-14 h-14 rounded-full bg-[#0A0A0A] hover:bg-[#151515] border border-white/10 flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.5)] z-50 pointer-events-auto relative overflow-hidden"
                     >
                         <ArrowUpDown className="text-white/90 relative z-10" size={24} />
@@ -138,6 +140,7 @@ export function CurrencyConverter() {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9, rotate: 180 }}
                         onClick={swapCurrencies}
+                        aria-label="Swap currencies"
                         className="relative w-14 h-14 rounded-full bg-[#0A0A0A] hover:bg-[#151515] border border-white/10 flex items-center justify-center transition-colors shadow-[0_0_20px_rgba(0,0,0,0.5)]"
                         title="Swap Currencies"
                     >
@@ -159,6 +162,10 @@ export function CurrencyConverter() {
 
             </motion.div>
 
+            {/* Anchored bottom-centre: clear of both swap buttons and the card values. */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
+                <RateStatus />
+            </div>
 
         </div>
     );

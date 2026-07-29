@@ -15,6 +15,13 @@ dist-ssr
 !.env.example
 *.local
 
+# Font binaries: the app loads Inter from Google Fonts, so local font files
+# would only bloat the repository and the production bundle.
+*.otf
+*.ttf
+*.woff
+*.woff2
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

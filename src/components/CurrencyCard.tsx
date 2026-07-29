@@ -1,5 +1,5 @@
 import { ChevronDown, Lock } from "lucide-react";
-import { cn } from "../lib/utils";
+import { cn, formatCurrencyValue, localeFor, parseAmountInput, MAX_AMOUNT_LENGTH } from "../lib/utils";
 import { CurrencyIcon } from "./CurrencyIcon";
 import { MotionNumber } from "./MotionNumber";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,7 +17,8 @@ const COLOR_THEMES: Record<string, { border: string, bg: string, text: string, g
 
 interface CurrencyCardProps {
     type: "source" | "target";
-    value: string;
+    /** Raw mask text when editable; the conversion result when read-only. */
+    value: string | number | null;
     currency: string;
     onValueChange?: (val: string) => void;
     onCurrencyChange?: () => void;
@@ -40,6 +41,14 @@ export function CurrencyCard({
     const theme = COLOR_THEMES[themeColor] || COLOR_THEMES['default'];
     const { t, language } = useLanguage();
 
+    // Editable cards hold raw mask text; read-only cards hold the numeric result.
+    const inputText = typeof value === 'string' ? value : '';
+    const numericValue = typeof value === 'number' ? value : parseAmountInput(inputText);
+    // Font size tracks the rendered width, which differs between the two modes.
+    const displayLength = readOnly
+        ? formatCurrencyValue(numericValue || 0, currency, localeFor(language)).length
+        : inputText.length;
+
 
 
     // Progressive font size based on value length
@@ -51,23 +60,7 @@ export function CurrencyCard({
         return "text-4xl md:text-6xl"; // Max mobile size 4xl (36px) is safer than 5xl
     };
 
-    const formatHumanReadable = (value: string) => {
-        let rawValue: number;
-
-        // PT vs EN formatting
-        if (language === 'pt') {
-            if (readOnly) {
-                // Context provides en-US format (comma=thousand, dot=decimal)
-                rawValue = parseFloat(value.replace(/,/g, ''));
-            } else {
-                // Input provides pt-BR format (dot=thousand, comma=decimal)
-                rawValue = parseFloat(value.replace(/\./g, '').replace(',', '.'));
-            }
-        } else {
-            // EN-US input: comma=thousand
-            rawValue = parseFloat(value.replace(/,/g, ''));
-        }
-
+    const formatHumanReadable = (rawValue: number) => {
         if (isNaN(rawValue) || rawValue < 1000) return null;
 
         const formatNum = (val: number) => {
@@ -97,20 +90,23 @@ export function CurrencyCard({
         return null;
     };
 
+    const humanReadable = formatHumanReadable(numericValue);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!onValueChange) return;
 
-        // Allow only numbers and comma
-        let val = e.target.value.replace(/[^0-9,]/g, '');
+        // The numpad/period key is accepted as a decimal separator and mapped to
+        // comma; dropping it outright would turn "1.5" into "15".
+        let val = e.target.value.replace(/\./g, ',').replace(/[^0-9,]/g, '');
 
-        // Prevent multiple commas
-        const commaCount = (val.match(/,/g) || []).length;
-        if (commaCount > 1) {
-            return;
+        // Keep only the first comma instead of rejecting the edit, which would
+        // freeze the field with no visible reason.
+        const firstComma = val.indexOf(',');
+        if (firstComma !== -1) {
+            val = val.slice(0, firstComma + 1) + val.slice(firstComma + 1).replace(/,/g, '');
         }
 
-        // Limit length
-        if (val.length > 15) val = val.slice(0, 15);
+        if (val.length > MAX_AMOUNT_LENGTH) val = val.slice(0, MAX_AMOUNT_LENGTH);
 
         onValueChange(val);
     };
@@ -131,7 +127,11 @@ export function CurrencyCard({
                             <Lock size={12} className="animate-pulse" /> Fixed Rate
                         </span>
                     )}
-                    <button onClick={onCurrencyChange} className="flex items-center gap-4 group/btn text-left">
+                    <button
+                        onClick={onCurrencyChange}
+                        aria-label={`${type === 'source' ? t.from : t.to}: ${currency}. ${t.selectCurrency}`}
+                        className="flex items-center gap-4 group/btn text-left"
+                    >
 
                         {/* Dynamic Icon Container */}
                         <div className={cn(
@@ -198,23 +198,28 @@ export function CurrencyCard({
 
             <div className="flex flex-col gap-2 mt-2 z-10 relative">
                 {readOnly ? (
-                    <MotionNumber
-                        value={value || "0"}
+                    // The result updates without user action here, so it is announced politely.
+                    <span role="status" aria-live="polite" aria-atomic="true">
+                        <MotionNumber
+                        value={typeof value === 'number' ? value : null}
                         currency={currency}
                         className={cn(
                             "bg-transparent font-medium text-white block w-full text-left tracking-tight transition-[font-size] duration-150",
-                            getFontSizeClass(value.length),
+                            getFontSizeClass(displayLength),
                             "cursor-default text-white/80"
                         )}
-                    />
+                        />
+                    </span>
                 ) : (
                     <input
                         type="text"
                         inputMode="decimal"
-                        value={value}
+                        value={inputText}
                         onChange={handleInputChange}
                         readOnly={readOnly}
                         placeholder="0,00"
+                        aria-label={`${t.from} ${currency}`}
+                        autoComplete="off"
                         // Prevent invalid chars
                         onKeyDown={(e) => {
                             // Allow control keys
@@ -228,7 +233,7 @@ export function CurrencyCard({
                         }}
                         className={cn(
                             "bg-transparent font-medium text-white placeholder:text-white/5 outline-none w-full text-left tracking-tight transition-[font-size] duration-150",
-                            getFontSizeClass(value.length),
+                            getFontSizeClass(displayLength),
                             "cursor-text"
                         )}
                         style={{ fontWeight: 500 }}
@@ -240,14 +245,14 @@ export function CurrencyCard({
             {/* Human Readable Helper */}
             <div className="h-4 mt-1 pl-1">
                 <AnimatePresence>
-                    {formatHumanReadable(value) && (
+                    {humanReadable && (
                         <motion.span
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
                             className="text-xs font-normal text-white/40 tracking-wide"
                         >
-                            {formatHumanReadable(value)}
+                            {humanReadable}
                         </motion.span>
                     )}
                 </AnimatePresence>

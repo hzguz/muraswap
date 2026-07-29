@@ -17,13 +17,7 @@ export default {
           "Inter",
           "-apple-system",
           "BlinkMacSystemFont",
-          "SF Pro Text",
-          "sans-serif"
-        ],
-        display: [
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "SF Pro Display",
+          "Segoe UI",
           "sans-serif"
         ],
       },

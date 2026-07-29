@@ -45,6 +45,7 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
         savePair,
         removePair,
         isPairSaved,
+        loadPair,
         setSourceCurrency: setGlobalSource,
         setTargetCurrency: setGlobalTarget
     } = useCurrency();
@@ -71,6 +72,18 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
         // Re-check when sortedCurrencies changes (filter update)
     }, [isOpen]); // Reset tab when opening
 
+    // Escape closes the drawer, matching the dismiss affordance of the backdrop.
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+        };
+
+        window.addEventListener('keydown', handleEscape);
+        return () => window.removeEventListener('keydown', handleEscape);
+    }, [isOpen, onClose]);
+
     // Logic Fix: Prevent selecting the same currency.
     // If we are selecting 'source', hide the currency that is currently 'target'.
     // If we are selecting 'target', hide the currency that is currently 'source'.
@@ -87,8 +100,8 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
     };
 
     const handleSelectPair = (source: string, target: string) => {
-        setGlobalSource(source);
-        setGlobalTarget(target);
+        // Loading a saved pair is an explicit choice, so it persists across visits.
+        loadPair(source, target);
         onClose();
     };
 
@@ -122,14 +135,18 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="currency-selector-title"
                         className="fixed bottom-0 left-0 right-0 md:bottom-4 md:left-4 md:right-4 z-[60] bg-[#111] md:rounded-[2rem] rounded-t-[2rem] border-t md:border border-white/10 p-0 md:p-6 pb-2 h-[70vh] md:h-[60vh] shadow-2xl origin-bottom flex flex-col"
                     >
                         <div className="flex justify-between items-center mb-4 md:mb-6 px-6 pt-6 md:pt-0 md:px-2 shrink-0">
-                            <h2 className="text-xl font-semibold text-white tracking-tight">{t.selectCurrency}</h2>
+                            <h2 id="currency-selector-title" className="text-xl font-semibold text-white tracking-tight">{t.selectCurrency}</h2>
                             <motion.button
                                 whileHover={{ scale: 1.1, rotate: 90 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={onClose}
+                                aria-label="Close"
                                 className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-colors"
                             >
                                 <X size={18} className="text-white" />
@@ -151,6 +168,8 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
 
                                 <button
                                     onClick={() => setActiveTab('currencies')}
+                                    role="tab"
+                                    aria-selected={activeTab === 'currencies'}
                                     className={cn(
                                         "flex-1 py-3 rounded-full font-medium text-sm transition-colors relative z-10 flex items-center justify-center gap-2",
                                         activeTab === 'currencies'
@@ -162,6 +181,8 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
                                 </button>
                                 <button
                                     onClick={() => setActiveTab('pairs')}
+                                    role="tab"
+                                    aria-selected={activeTab === 'pairs'}
                                     className={cn(
                                         "flex-1 py-3 rounded-full font-medium text-sm transition-colors relative z-10 flex items-center justify-center gap-2",
                                         activeTab === 'pairs'
@@ -211,10 +232,12 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
                                                     layout
                                                     variants={itemVariants}
                                                     key={curr}
+                                                    className="flex items-center gap-1 rounded-[1.2rem] border border-white/5 bg-white/5 hover:bg-white/10 transition-colors pr-1"
                                                 >
                                                     <button
                                                         onClick={() => handleSelect(curr)}
-                                                        className="w-full flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-[1.2rem] border border-white/5 bg-white/5 hover:bg-white/10 hover:scale-[1.01] active:scale-[0.99] transition-all group text-left relative"
+                                                        aria-label={`${t.selectCurrency}: ${curr} — ${t.currencies[curr] || curr}`}
+                                                        className="flex-1 min-w-0 flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-[1.2rem] hover:scale-[1.01] active:scale-[0.99] transition-transform group text-left relative"
                                                     >
                                                         <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden shadow-md shrink-0">
                                                             <CurrencyIcon currency={curr} className="w-full h-full" />
@@ -225,32 +248,31 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
                                                                 {t.currencies[curr] || curr}
                                                             </span>
                                                         </div>
-
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.1 }}
-                                                            whileTap={{ scale: 0.9 }}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                toggleFavorite(curr);
-                                                            }}
-                                                            className="p-3 rounded-full hover:bg-white/10 transition-colors group/star z-10 outline-none"
-                                                        >
-                                                            <motion.div
-                                                                key={isFav ? "fav" : "unfav"}
-                                                                initial={{ scale: 0.5, opacity: 0.5 }}
-                                                                animate={{ scale: 1, opacity: 1 }}
-                                                                transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                                                            >
-                                                                <Star
-                                                                    size={18}
-                                                                    className={cn(
-                                                                        "transition-colors duration-300",
-                                                                        isFav ? "fill-white text-white" : "text-white/20 group-hover/star:text-white/50"
-                                                                    )}
-                                                                />
-                                                            </motion.div>
-                                                        </motion.button>
                                                     </button>
+
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.1 }}
+                                                        whileTap={{ scale: 0.9 }}
+                                                        onClick={() => toggleFavorite(curr)}
+                                                        aria-label={`${isFav ? 'Remove' : 'Add'} ${curr} favorite`}
+                                                        aria-pressed={isFav}
+                                                        className="p-3 rounded-full hover:bg-white/10 transition-colors group/star z-10 outline-none shrink-0"
+                                                    >
+                                                        <motion.div
+                                                            key={isFav ? "fav" : "unfav"}
+                                                            initial={{ scale: 0.5, opacity: 0.5 }}
+                                                            animate={{ scale: 1, opacity: 1 }}
+                                                            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                                                        >
+                                                            <Star
+                                                                size={18}
+                                                                className={cn(
+                                                                    "transition-colors duration-300",
+                                                                    isFav ? "fill-white text-white" : "text-white/20 group-hover/star:text-white/50"
+                                                                )}
+                                                            />
+                                                        </motion.div>
+                                                    </motion.button>
                                                 </motion.div>
                                             )
                                         })}
@@ -307,7 +329,8 @@ export function CurrencySelector({ isOpen, onClose, type }: CurrencySelectorProp
                                                             e.stopPropagation();
                                                             removePair(pair.source, pair.target);
                                                         }}
-                                                        className="p-3 rounded-full hover:bg-red-500/20 hover:text-red-400 text-white/20 transition-colors"
+                                                        aria-label={`Remove ${pair.source} to ${pair.target} pair`}
+                                                        className="p-3 rounded-full hover:bg-red-500/20 hover:text-red-400 text-white/20 transition-colors shrink-0"
                                                     >
                                                         <Trash2 size={18} />
                                                     </button>

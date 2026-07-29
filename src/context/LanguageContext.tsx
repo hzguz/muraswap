@@ -17,6 +17,8 @@ interface Translations {
     noPairsSaved: string;
     activePair: string;
     loadPair: string;
+    updatedAt: string;
+    updating: string;
     currencies: Record<string, string>;
     plural: {
         million: string;
@@ -41,6 +43,8 @@ const translations: Record<Language, Translations> = {
         noPairsSaved: 'Nenhum par salvo ainda.',
         activePair: '(Ativo)',
         loadPair: 'Carregar',
+        updatedAt: 'Cotação de',
+        updating: 'Atualizando cotações',
         currencies: {
             'BRL': 'Real Brasileiro',
             'USD': 'Dólar Americano',
@@ -77,6 +81,8 @@ const translations: Record<Language, Translations> = {
         noPairsSaved: 'No pairs saved yet.',
         activePair: '(Active)',
         loadPair: 'Load',
+        updatedAt: 'Quoted at',
+        updating: 'Updating rates',
         currencies: {
             'BRL': 'Brazilian Real',
             'USD': 'US Dollar',
