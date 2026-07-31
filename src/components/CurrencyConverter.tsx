@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ArrowUpDown } from "lucide-react";
 import { CurrencyCard } from "./CurrencyCard";
 import { CurrencySelector } from "./CurrencySelector";
-import { RateStatus } from "./RateStatus";
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
 import { useCurrency } from "../context/CurrencyContext";
@@ -161,11 +160,6 @@ export function CurrencyConverter() {
                 </div>
 
             </motion.div>
-
-            {/* Anchored bottom-centre: clear of both swap buttons and the card values. */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none">
-                <RateStatus />
-            </div>
 
         </div>
     );
